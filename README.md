@@ -26,8 +26,8 @@ This is a full-stack machine learning web app that allows users to draw a digit 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com//digit-classifier.git
-cd digit-classifier
+git clone https://github.com/Annie0159/DigitClassifier.git
+cd DigitClassifier
 ```
 
 ### 2. Install Dependencies
