@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Digit Classifier</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #f0f4f8;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    canvas {
+      border: 2px solid #333;
+      border-radius: 10px;
+      background-color: black;
+      touch-action: none;
+      margin: 10px 0;
+    }
+
+    .buttons {
+      margin: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #result {
+      font-size: 1.2rem;
+      margin-top: 15px;
+      color: #333;
+      min-height: 30px;
+    }
+
+    @media (max-width: 500px) {
+      canvas {
+        width: 90vw;
+        height: 90vw;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🧠 Digit Classifier</h1>
+  <p>Draw a digit (0-9) below:</p>
+  <canvas id="canvas" width="280" height="280"></canvas>
+
+  <div class="buttons">
+    <button id="predictBtn">Predict</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 15;
+    ctx.lineCap = "round";
+    let drawing = false;
+
+    canvas.addEventListener("mousedown", () => { drawing = true; });
+    canvas.addEventListener("mouseup", () => { drawing = false; ctx.beginPath(); });
+    canvas.addEventListener("mousemove", draw);
+
+    canvas.addEventListener("touchstart", () => { drawing = true; });
+    canvas.addEventListener("touchend", () => { drawing = false; ctx.beginPath(); });
+    canvas.addEventListener("touchmove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      draw({ clientX: touch.clientX, clientY: touch.clientY });
+      e.preventDefault();
+    });
+
+    function draw(e) {
+      if (!drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
+    document.getElementById("clearBtn").onclick = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      document.getElementById("result").textContent = "";
+    };
+
+    document.getElementById("predictBtn").onclick = async () => {
+      const dataURL = canvas.toDataURL("image/png");
+      const response = await fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataURL }),
+      });
+
+      const resultDiv = document.getElementById("result");
+
+      if (response.ok) {
+        const res = await response.json();
+        resultDiv.textContent = `Prediction: ${res.digit} (Confidence: ${(res.confidence * 100).toFixed(2)}%)`;
+      } else {
+        const res = await response.json();
+        resultDiv.textContent = `Error: ${res.error}`;
+      }
+    };
+  </script>
+
+</body>
+</html>
